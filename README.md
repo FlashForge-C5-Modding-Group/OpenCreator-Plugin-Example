@@ -59,6 +59,86 @@ Only the manifest is required. The folder names are up to you; the manifest says
 | `moonraker_components` | no | Moonraker components (`.py` files), loaded by the `[section]` of the same name. |
 | `moonraker_config` | no | Moonraker config: your components' sections. |
 | `restart` | no | Extra services to restart after install/update (`klipper`, `moonraker`). The ones your files need are restarted anyway. |
+| `startup` | no | Programs started at boot and kept running: see **Startup items** below. |
+| `scripts` | no | `install`, `update` and `uninstall` scripts: see **Install scripts** below. |
+| `requires` | no | The printers and installs the plugin is made for: see **Compatibility** below. |
+
+## Startup items
+
+```json
+"startup": [
+  { "name": "server", "exec": "bin/server.sh", "type": "service" },
+  { "name": "cleanup", "exec": "bin/cleanup.sh", "type": "once", "delay": 30, "args": ["--quick"] }
+]
+```
+
+- `name`: 2-41 lowercase letters, digits, `-` or `_`, unique in the plugin.
+- `exec`: a file in the plugin. `.sh` files run with `sh`, others have to be executable.
+- `type`: `service` (default) is started again when it exits: 5 s later, doubling up to a minute while it keeps
+  failing within a minute. `once` runs at boot and that's it.
+- `args`: extra arguments. `delay`: seconds to wait before starting (0-600).
+
+They start when the plugin is installed or enabled and at every boot (`startup.sh` runs `oc-plugin boot` after
+OpenCreator's own startup scripts), stop when it's disabled or removed, and are restarted around an update.
+Each item logs to `/tmp/oc-plugin-<id>-<name>.log`, which `oc-plugin logs <id> [name]` shows (`-f` to follow).
+On the printer `/tmp` is in RAM, so a log is moved to `.log.1` once it passes 512 KB, when the item starts or
+restarts. By hand: `oc-plugin status`, `oc-plugin start|stop|restart <id> [name]`.
+
+## Install scripts
+
+```json
+"scripts": { "install": "bin/install.sh", "update": "bin/install.sh", "uninstall": "bin/uninstall.sh" }
+```
+
+- `install` runs once the plugin is in place, before anything is linked or started. If it fails, the plugin isn't installed.
+- `update` runs after `oc-plugin update` pulled a new version; `uninstall` before `oc-plugin remove` deletes it.
+  A failure there is only a warning.
+- Up to 15 minutes each; their output is shown.
+
+Scripts and startup items run in the plugin folder with these set:
+
+| Variable | |
+| --- | --- |
+| `OC_PLUGIN_ID`, `OC_PLUGIN_DIR` | the plugin's id and folder |
+| `OC_PLUGIN_DATA` | a folder for the plugin's own files (settings, downloads). Kept across updates; `oc-plugin remove` deletes it unless given `--keep-data` |
+| `OC_CONFIG_DIR`, `OC_KLIPPER_DIR`, `OC_MOONRAKER_URL` | where Klipper's config and Kalico are, and Moonraker's address |
+
+`/opt/bin` is on the `PATH`. Keep anything a user changes in `OC_PLUGIN_DATA`: the plugin folder is a git
+checkout that updates replace.
+
+## Compatibility
+
+```json
+"requires": { "models": ["Creator5Pro"], "modes": ["soc"] }
+```
+
+- `models`: `Creator5`, `Creator5Pro`. For hardware only one of them has, like the Pro's chamber heater.
+- `modes`: `soc` (Klipper on the printer itself) or `sbc` (Klipper on a Raspberry Pi or other SBC).
+
+Leave a key out to allow everything. `oc-plugin install` refuses a plugin that isn't made for the printer, and
+`oc-plugin update` keeps the old version if a new one isn't (or its manifest is broken). `--force` installs it
+anyway. If the model can't be told, it only warns.
+
+## Getting into the catalog
+
+`oc-plugin search` lists the plugin catalog, `catalog.json` in
+[opencreator-fs](https://github.com/FlashForge-C5-Modding-Group/opencreator-fs) under
+`fs/usr/data/opencreator/plugin-manager/`. Open a pull request adding your plugin there:
+
+```json
+{
+  "id": "hello",
+  "name": "Hello OpenCreator",
+  "official": false,
+  "author": "You",
+  "description": "One line on what it does.",
+  "url": "https://github.com/you/your-plugin.git",
+  "requires": { "modes": ["soc"] },
+  "note": "Optional: anything people need to do after installing."
+}
+```
+
+The `id` must match your manifest's. `official` is only set for plugins the OpenCreator team makes or checks.
 
 Module names must be unique: a module named like one of Kalico's own (or another plugin's) is refused.
 Prefix yours (this one uses `oc_hello`).
