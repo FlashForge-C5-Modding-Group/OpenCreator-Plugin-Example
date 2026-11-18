@@ -113,7 +113,9 @@ checkout that updates replace.
 ```
 
 - `models`: `Creator5`, `Creator5Pro`. For hardware only one of them has, like the Pro's chamber heater.
-- `modes`: `soc` (Klipper on the printer itself) or `sbc` (Klipper on a Raspberry Pi or other SBC).
+- `modes`: `soc` (Klipper on the printer itself) or `sbc` (Klipper on a Raspberry Pi or other SBC). A printer
+  tunneled to an SBC counts as `sbc`. There, only startup items and scripts run on the printer, with
+  `OC_TUNNELED=1`, and `OC_MOONRAKER_URL` is the SBC's Moonraker (`oc-plugin moonraker --find`).
 
 Leave a key out to allow everything. `oc-plugin install` refuses a plugin that isn't made for the printer, and
 `oc-plugin update` keeps the old version if a new one isn't (or its manifest is broken). `--force` installs it
