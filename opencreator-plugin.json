@@ -1,5 +1,5 @@
 {
-  "id": "spoolman",
+  "id": "oc_spoolman",
   "name": "Spoolman per tool",
   "version": "1.0.0",
   "description": "A Spoolman spool per tool through AFC, so each tool books filament on its own spool.",
