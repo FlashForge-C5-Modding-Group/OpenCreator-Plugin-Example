@@ -170,8 +170,9 @@ A folder install is a copy, so `oc-plugin` doesn't see later changes to the fold
 the plugin and install it again from the folder. A folder install also isn't offered in Fluidd/Mainsail's
 update manager, because that needs a git URL.
 
-The commands below are for the printer itself. On an SBC, use your home folder (`~`) instead of `/usr/data`,
-and the SBC's user and address.
+The working copies go in their own folder, `/usr/data/localPluginTrials`, away from the installed plugins. The
+commands below are for the printer itself. On an SBC, use `~/localPluginTrials` instead, and the SBC's user
+and address.
 
 ### Option 1: git on the printer
 
@@ -179,17 +180,18 @@ Clone the repo on the printer once, over SSH:
 
 ```sh
 ssh root@<printer>
-cd /usr/data
+mkdir -p /usr/data/localPluginTrials
+cd /usr/data/localPluginTrials
 git clone https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman.git
 ```
 
 Then, for every change you push to GitHub:
 
 ```sh
-cd /usr/data/OpenCreator-Plugin-Spoolman
+cd /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 git pull
 oc-plugin remove oc_spoolman
-oc-plugin install /usr/data/OpenCreator-Plugin-Spoolman
+oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 ```
 
 To work on a branch, run `git checkout <branch>` in that folder first.
@@ -199,15 +201,16 @@ To work on a branch, run `git checkout <branch>` in that folder first.
 To try changes without pushing them, copy your working folder to the printer, from your computer:
 
 ```sh
-ssh root@<printer> rm -rf /usr/data/OpenCreator-Plugin-Spoolman
-scp -r OpenCreator-Plugin-Spoolman root@<printer>:/usr/data/
+ssh root@<printer> "mkdir -p /usr/data/localPluginTrials && rm -rf /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman"
+scp -r OpenCreator-Plugin-Spoolman root@<printer>:/usr/data/localPluginTrials/
 ```
 
-The `rm -rf` first makes sure files you deleted locally don't stay behind on the printer. Then, on the printer:
+The `mkdir -p` makes the folder the first time and does nothing after that. The `rm -rf` clears the previous
+copy, so files you deleted locally don't stay behind on the printer. Then, on the printer:
 
 ```sh
 oc-plugin remove oc_spoolman
-oc-plugin install /usr/data/OpenCreator-Plugin-Spoolman
+oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 ```
 
 ### Notes
