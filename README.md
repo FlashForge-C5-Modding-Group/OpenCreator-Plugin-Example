@@ -164,10 +164,10 @@ sets a lane's spool.
 
 ## Updating and removing
 
-Updates show up in Fluidd/Mainsail's update manager as **oc-plugin-spoolman**, or run
-`oc-plugin update spoolman`. An update adds the `moonraker.conf` include again if it went missing.
+Updates show up in Fluidd/Mainsail's update manager as **oc-plugin-oc_spoolman_integration**, or run
+`oc-plugin update oc_spoolman_integration`. An update adds the `moonraker.conf` include again if it went missing.
 
-`oc-plugin remove spoolman` removes the macros and the `[include oc-spoolman.conf]` line. It keeps
+`oc-plugin remove oc_spoolman_integration` removes the macros and the `[include oc-spoolman.conf]` line. It keeps
 `oc-spoolman.conf` with your address in it. Restart Moonraker afterwards to disconnect from Spoolman. The spool IDs
 stay with AFC.
 
@@ -191,8 +191,8 @@ with a message, since Klipper and Moonraker aren't there.
 
 ## Developing
 
-To try changes before they are pushed and released, install a working copy straight from a folder on the
-printer. Get the folder there in one of two ways: clone it with git on the printer, or copy it over with SCP.
+To try changes before they are released, clone the repo on the printer and install the plugin straight from
+that folder.
 
 A folder install is a copy, so `oc-plugin` doesn't see later changes to the folder. After each change, remove
 the plugin and install it again from the folder. A folder install also isn't offered in Fluidd/Mainsail's
@@ -202,7 +202,7 @@ The working copies go in their own folder, `/usr/data/localPluginTrials`, away f
 commands below are for the printer itself. On an SBC, use `~/localPluginTrials` instead, and the SBC's user
 and address.
 
-### Option 1: git on the printer
+### Clone and install
 
 Clone the repo on the printer once, over SSH:
 
@@ -218,34 +218,11 @@ Then, for every change you push to GitHub:
 ```sh
 cd /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 git pull
-oc-plugin remove oc_spoolman
+oc-plugin remove oc_spoolman_integration
 oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 ```
 
 To work on a branch, run `git checkout <branch>` in that folder first.
-
-### Option 2: SCP from your computer
-
-To try changes without pushing them, copy your working folder to the printer. Make the folder for it once:
-
-```sh
-ssh root@<printer> mkdir -p /usr/data/localPluginTrials
-```
-
-Then, for every change, from your computer:
-
-```sh
-ssh root@<printer> rm -rf /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
-scp -r OpenCreator-Plugin-Spoolman root@<printer>:/usr/data/localPluginTrials/
-```
-
-The `rm -rf` clears the previous copy, so files you deleted locally don't stay behind on the printer. Then, on
-the printer:
-
-```sh
-oc-plugin remove oc_spoolman
-oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
-```
 
 ### Notes
 
@@ -254,11 +231,11 @@ oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
   both scripts. Your `oc-spoolman.conf` with the Spoolman address is kept in between.
 - Install restarts Klipper and Moonraker, unless the printer is printing. Add `--no-restart` to skip that, and
   run `FIRMWARE_RESTART` yourself when you're ready to load the new macros.
-- To go back to the released plugin: `oc-plugin remove oc_spoolman`, then install it from the git URL as under
+- To go back to the released plugin: `oc-plugin remove oc_spoolman_integration`, then install it from the git URL as under
   **Install**.
 - A pushed branch can also be installed from GitHub instead of a folder:
   `oc-plugin install https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman.git --ref <branch>`. That
-  install is a git checkout, so `oc-plugin update oc_spoolman` pulls new commits on that branch.
+  install is a git checkout, so `oc-plugin update oc_spoolman_integration` pulls new commits on that branch.
 
 ### Tests
 

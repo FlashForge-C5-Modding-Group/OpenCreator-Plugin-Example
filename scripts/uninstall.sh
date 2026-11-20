@@ -5,7 +5,7 @@ CONFIG_DIR="${OC_CONFIG_DIR:?OC_CONFIG_DIR is not set}"
 MOONRAKER_CONF="$CONFIG_DIR/moonraker.conf"
 if [ "$OC_TUNNELED" = 1 ]; then    # nothing was set up on a tunneled printer
     echo "This printer is tunneled: Klipper and Moonraker run on the SBC, so there's nothing to undo here."
-    echo "To remove Spoolman from Klipper and Moonraker, uninstall the plugin on the SBC (oc-plugin remove spoolman there)."
+    echo "To remove Spoolman from Klipper and Moonraker, uninstall the plugin on the SBC (oc-plugin remove oc_spoolman_integration there)."
     exit 0
 fi
 
