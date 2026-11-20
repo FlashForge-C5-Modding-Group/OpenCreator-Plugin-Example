@@ -161,6 +161,81 @@ The plugin works wherever Klipper and Moonraker run: on the printer itself, or o
 tunneled to an SBC, install it on the SBC, not on the printer. On the printer, the install script stops
 with a message, since Klipper and Moonraker aren't there.
 
+## Developing
+
+To try changes before they are pushed and released, install a working copy straight from a folder on the
+printer. Get the folder there in one of two ways: clone it with git on the printer, or copy it over with SCP.
+
+A folder install is a copy, so `oc-plugin` doesn't see later changes to the folder. After each change, remove
+the plugin and install it again from the folder. A folder install also isn't offered in Fluidd/Mainsail's
+update manager, because that needs a git URL.
+
+The commands below are for the printer itself. On an SBC, use your home folder (`~`) instead of `/usr/data`,
+and the SBC's user and address.
+
+### Option 1: git on the printer
+
+Clone the repo on the printer once, over SSH:
+
+```sh
+ssh root@<printer>
+cd /usr/data
+git clone https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman.git
+```
+
+Then, for every change you push to GitHub:
+
+```sh
+cd /usr/data/OpenCreator-Plugin-Spoolman
+git pull
+oc-plugin remove oc_spoolman
+oc-plugin install /usr/data/OpenCreator-Plugin-Spoolman
+```
+
+To work on a branch, run `git checkout <branch>` in that folder first.
+
+### Option 2: SCP from your computer
+
+To try changes without pushing them, copy your working folder to the printer, from your computer:
+
+```sh
+ssh root@<printer> rm -rf /usr/data/OpenCreator-Plugin-Spoolman
+scp -r OpenCreator-Plugin-Spoolman root@<printer>:/usr/data/
+```
+
+The `rm -rf` first makes sure files you deleted locally don't stay behind on the printer. Then, on the printer:
+
+```sh
+oc-plugin remove oc_spoolman
+oc-plugin install /usr/data/OpenCreator-Plugin-Spoolman
+```
+
+### Notes
+
+- The first time, skip `oc-plugin remove`: there's nothing to remove yet.
+- Removing runs `scripts/uninstall.sh` and installing runs `scripts/install.sh`, so each round also tests
+  both scripts. Your `oc-spoolman.conf` with the Spoolman address is kept in between.
+- Install restarts Klipper and Moonraker, unless the printer is printing. Add `--no-restart` to skip that, and
+  run `FIRMWARE_RESTART` yourself when you're ready to load the new macros.
+- To go back to the released plugin: `oc-plugin remove oc_spoolman`, then install it from the git URL as under
+  **Install**.
+- A pushed branch can also be installed from GitHub instead of a folder:
+  `oc-plugin install https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman.git --ref <branch>`. That
+  install is a git checkout, so `oc-plugin update oc_spoolman` pulls new commits on that branch.
+
+### Tests
+
+Run the tests on your computer before copying:
+
+```sh
+python3 -m unittest discover -s tests
+```
+
+The macro tests need `jinja2` (`pip install jinja2`) and are skipped without it.
+
+The full plugin system documentation is on the OpenCreator docs site, under **Plugins**, and in the
+[example plugin](https://github.com/FlashForge-C5-Modding-Group/OpenCreator-Plugin-Example).
+
 ## License
 
-GPLv3
+GNU General Public License v3.0. See [LICENSE.md](LICENSE.md).

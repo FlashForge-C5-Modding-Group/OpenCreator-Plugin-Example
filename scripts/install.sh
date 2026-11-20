@@ -27,6 +27,13 @@ if grep -q '^\[spoolman\]' "$MOONRAKER_CONF"; then
     exit 0
 fi
 
+# OpenCreator's default moonraker.conf has a commented-out [spoolman] example.
+if grep -q '^#[[:space:]]*\[spoolman\]' "$MOONRAKER_CONF"; then
+    echo "moonraker.conf has OpenCreator's default [spoolman] section, commented out. Leave it commented out:"
+    echo "Spoolman's address goes in oc-spoolman.conf, and uncommenting both defines [spoolman] twice,"
+    echo "which might prevent the machine from starting correctly."
+fi
+
 if [ -f "$SPOOLMAN_CONF" ]; then
     echo "Keeping the existing $SPOOLMAN_CONF"
 else
