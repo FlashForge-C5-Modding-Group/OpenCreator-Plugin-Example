@@ -1,165 +1,166 @@
-# OpenCreator plugin example
+# OpenCreator Spoolman plugin
 
-A small, working OpenCreator plugin to copy when you make your own. It adds:
+A Spoolman spool per tool on the Creator 5 and Creator 5 Pro.
 
-- **`OC_HELLO [NAME=...]`**: a G-code command from a Klippy module (`klippy/oc_hello.py`) that replies with
-  the active extruder and its temperature. The module also has a status object, `printer.oc_hello`, with
-  `greeting` and `count`.
-- **`OC_HELLO_TOOL`**: a macro from the plugin's config (`config/hello.cfg`).
-- **`GET /server/oc_hello`**: a Moonraker endpoint (`moonraker/oc_hello.py`), configured in `moonraker/hello.conf`.
+A filament start G-code like `SET_ACTIVE_SPOOL ID=174` ties a spool to a *slicer profile*. With four tools,
+one profile (say Qidi PETG) can be loaded as yellow on T0 and blue on T1, and both would book their filament on
+spool 174. This plugin ties the spool to the *tool* instead, using AFC, which OpenCreator already uses for the
+tools:
+
+- Each tool (AFC lane `extruder0` to `extruder3` for T0 to T3) keeps its own Spoolman spool ID, across restarts.
+- When a tool is picked up, AFC makes that tool's spool the active spool in Spoolman, so usage is booked on the
+  spool that is actually printing.
+- Macros to assign, clear, activate and list spools per tool, and to turn the plugin's messages on and off.
 
 ## Install
 
-On the printer (SSH):
+On the printer over SSH, or on the SBC if the printer is tunneled to one:
 
 ```sh
-oc-plugin install https://github.com/FlashForge-C5-Modding-Group/OpenCreator-Plugin-Example.git
+oc-plugin install https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman.git
 ```
 
-Klipper and Moonraker restart by themselves, unless the printer is printing. Then try `OC_HELLO` in the
-console, or open `http://<printer>/server/oc_hello`.
+Installing:
 
-Updates show up in Fluidd/Mainsail's update manager as **oc-plugin-hello**, or run `oc-plugin update hello`.
-`oc-plugin remove hello` removes it again.
+- adds the macros below to Klipper
+- creates `oc-spoolman.conf` in Klipper's config folder, next to `moonraker.conf`
+- adds this line to `moonraker.conf`:
+
+  ```
+  [include oc-spoolman.conf]
+  ```
+
+Klipper and Moonraker then restart, unless the printer is printing.
+
+If `moonraker.conf` already has an active `[spoolman]` section, the install leaves `moonraker.conf` as it is and
+uses that section. In that case, skip step 1.
+
+## Setup
+
+### 1. Put in your Spoolman server's address
+
+1. In Fluidd or Mainsail, open the configuration files and edit `oc-spoolman.conf`. Over SSH, the file is
+   `/usr/data/opencreator/klipper/config/oc-spoolman.conf` on the printer, or
+   `~/printer_data/config/oc-spoolman.conf` on an SBC.
+2. Set `server:` to the address you open Spoolman with in your browser, including the port (Spoolman's default
+   is 7912).
+3. Remove the `#` in front of the three lines. The file then ends like this:
+
+   ```ini
+   [spoolman]
+   server: http://192.168.1.100:7912
+   sync_rate: 30
+   ```
+
+4. Save, restart Moonraker, then run `FIRMWARE_RESTART` in the console. AFC only checks for Spoolman when Klipper
+   starts.
+5. Run `SPOOLMAN_STATUS`. Its first line should show your server's address.
+
+Plugin updates don't change `oc-spoolman.conf`, so your address stays.
+
+### 2. Give each tool its spool
+
+Find the spool's ID in Spoolman (the `#` number on the spool), then in the console:
+
+```gcode
+SPOOLMAN_SET_TOOL TOOL=0 SPOOL=174    ; Qidi PETG yellow on T0
+SPOOLMAN_SET_TOOL TOOL=1 SPOOL=175    ; Qidi PETG blue on T1
+SPOOLMAN_STATUS
+```
+
+AFC looks each spool up in Spoolman and fills in the tool's material, color and weight. If a spool was on
+another tool, it moves to the new one. Swap the spool on a tool, run `SPOOLMAN_SET_TOOL` again.
+
+### 3. Change the filament start G-code in your slicer
+
+Take `SET_ACTIVE_SPOOL ID=174` out of the filament profile. Then use one of the two options below.
+
+**A. One profile for several spools** (the same Qidi PETG profile for the yellow and the blue spool). Assign
+the spools on the printer as in step 2, and put this in the filament start G-code:
+
+```gcode
+;set spoolman
+SPOOLMAN_ACTIVATE_TOOL
+```
+
+This makes the printing tool's spool the active spool. AFC already does that when it picks up a tool, so this
+line only makes sure of it. If the tool has no spool assigned, you get a warning in the console and no spool is
+active, so the filament isn't booked on the wrong spool.
+
+**B. One profile per spool** (a separate profile for the yellow and the blue spool):
+
+```gcode
+;set spoolman
+SPOOLMAN_SET_TOOL SPOOL=174
+```
+
+This assigns spool 174 to whichever tool prints with this profile and makes it the active spool. If the tool
+already has that spool, it doesn't contact Spoolman. When the spool changes, AFC looks it up in Spoolman, which
+pauses the G-code for as long as Spoolman takes to answer. That is usually a fraction of a second.
+
+In both options `TOOL` is optional. It defaults to the tool that is printing, which is what the filament start
+G-code needs. Pass `TOOL=` only to set up a tool that isn't active, as in step 2.
+
+### 4. Messages
+
+The macros report what they did in the console, for example `Spoolman: Tool 1 has spool 175 (active)`. With
+filament start G-code that runs at every tool change, that adds up:
+
+```gcode
+SPOOLMAN_ECHO_OFF   ; hide routine messages
+SPOOLMAN_ECHO_ON    ; show them again (the default)
+```
+
+The setting is saved, so it lasts across restarts. Problems are always shown, whatever the setting. When the
+printer is idle they are errors. During a print they are warnings, so they don't stop the print.
+
+You can use the same switch in your own G-code:
+
+```gcode
+SPOOLMAN_ECHO MSG="Qidi PETG yellow loaded"
+```
+
+## Macros
+
+| Macro | What it does |
+| --- | --- |
+| `SPOOLMAN_SET_TOOL SPOOL=<id> [TOOL=<0-3>] [ACTIVATE=0/1]` | Assigns a spool to a tool. Activates it when the tool is the one in use; `ACTIVATE` overrides that. `SPOOL=0` clears the tool. `ID=` works as well as `SPOOL=`. |
+| `SPOOLMAN_CLEAR_TOOL [TOOL=<0-3>]` / `ALL=1` | Takes the spool off a tool, or off all tools. |
+| `SPOOLMAN_ACTIVATE_TOOL [TOOL=<0-3>]` | Makes a tool's assigned spool the active spool, or clears the active spool if the tool has none. |
+| `SPOOLMAN_STATUS` | Shows the Spoolman server, each tool's spool, material and color, the active tool, and whether messages are on. |
+| `SPOOLMAN_ECHO MSG="..."` | Shows `MSG` while messages are on. |
+| `SPOOLMAN_ECHO_ON` / `SPOOLMAN_ECHO_OFF` | Turns the messages on or off. The setting is saved as `oc_spoolman_echo` in Klipper's saved variables. |
+
+AFC's own `SET_SPOOL_ID LANE=extruder1 SPOOL_ID=175` changes the same assignments, as does any AFC panel that
+sets a lane's spool.
+
+## Updating and removing
+
+Updates show up in Fluidd/Mainsail's update manager as **oc-plugin-spoolman**, or run
+`oc-plugin update spoolman`. An update adds the `moonraker.conf` include again if it went missing.
+
+`oc-plugin remove spoolman` removes the macros and the `[include oc-spoolman.conf]` line. It keeps
+`oc-spoolman.conf` with your address in it. Restart Moonraker afterwards to disconnect from Spoolman. The spool IDs
+stay with AFC.
 
 ## Layout
 
 ```
-opencreator-plugin.json   the manifest (required)
-klippy/oc_hello.py        Klippy module, loaded as [oc_hello]
-config/hello.cfg          Klipper config, included while the plugin is enabled
-moonraker/oc_hello.py     Moonraker component, loaded as [oc_hello]
-moonraker/hello.conf      Moonraker config for it
+opencreator-plugin.json     the manifest
+config/oc-spoolman.cfg      the Klipper macros, included while the plugin is enabled
+moonraker/oc-spoolman.conf  template for the config folder's oc-spoolman.conf
+scripts/install.sh          install and update: oc-spoolman.conf and the moonraker.conf include
+scripts/uninstall.sh        takes the include out again
+tests/                      python3 -m unittest discover -s tests (the macro tests need jinja2)
 ```
 
-Only the manifest is required. The folder names are up to you; the manifest says where things are.
+The Spoolman settings don't go through the manifest's `moonraker_config`. `oc-plugin` rewrites that file at
+every sync, so an address typed into it would be lost.
 
-## Manifest
-
-```json
-{
-  "id": "hello",
-  "name": "Hello OpenCreator",
-  "version": "1.0.0",
-  "description": "Example plugin: a Klippy module, a macro and a Moonraker endpoint.",
-  "klippy_extras": ["klippy/oc_hello.py"],
-  "klipper_config": "config/hello.cfg",
-  "moonraker_components": ["moonraker/oc_hello.py"],
-  "moonraker_config": "moonraker/hello.conf"
-}
-```
-
-| Key | Required | |
-| --- | --- | --- |
-| `id` | yes | 2-41 lowercase letters, digits, `-` or `_`. The install folder and config names use it. |
-| `name`, `version` | yes | Shown by `oc-plugin list`. Bump `version` with each release. |
-| `description`, `author`, `homepage` | no | For people reading the manifest. |
-| `klippy_extras` | no | Klippy modules (`.py` files). Each is loaded by the `[section]` of the same name. |
-| `klipper_config` | no | One Klipper config file, included after the rest of `printer.cfg`. |
-| `moonraker_components` | no | Moonraker components (`.py` files), loaded by the `[section]` of the same name. |
-| `moonraker_config` | no | Moonraker config: your components' sections. |
-| `restart` | no | Extra services to restart after install/update (`klipper`, `moonraker`). The ones your files need are restarted anyway. |
-| `startup` | no | Programs started at boot and kept running: see **Startup items** below. |
-| `scripts` | no | `install`, `update` and `uninstall` scripts: see **Install scripts** below. |
-| `requires` | no | The printers and installs the plugin is made for: see **Compatibility** below. |
-
-## Startup items
-
-```json
-"startup": [
-  { "name": "server", "exec": "bin/server.sh", "type": "service" },
-  { "name": "cleanup", "exec": "bin/cleanup.sh", "type": "once", "delay": 30, "args": ["--quick"] }
-]
-```
-
-- `name`: 2-41 lowercase letters, digits, `-` or `_`, unique in the plugin.
-- `exec`: a file in the plugin. `.sh` files run with `sh`, others have to be executable.
-- `type`: `service` (default) is started again when it exits: 5 s later, doubling up to a minute while it keeps
-  failing within a minute. `once` runs at boot and that's it.
-- `args`: extra arguments. `delay`: seconds to wait before starting (0-600).
-
-They start when the plugin is installed or enabled and at every boot (`startup.sh` runs `oc-plugin boot` after
-OpenCreator's own startup scripts), stop when it's disabled or removed, and are restarted around an update.
-Each item logs to `/tmp/oc-plugin-<id>-<name>.log`, which `oc-plugin logs <id> [name]` shows (`-f` to follow).
-On the printer `/tmp` is in RAM, so a log is moved to `.log.1` once it passes 512 KB, when the item starts or
-restarts. By hand: `oc-plugin status`, `oc-plugin start|stop|restart <id> [name]`.
-
-## Install scripts
-
-```json
-"scripts": { "install": "bin/install.sh", "update": "bin/install.sh", "uninstall": "bin/uninstall.sh" }
-```
-
-- `install` runs once the plugin is in place, before anything is linked or started. If it fails, the plugin isn't installed.
-- `update` runs after `oc-plugin update` pulled a new version; `uninstall` before `oc-plugin remove` deletes it.
-  A failure there is only a warning.
-- Up to 15 minutes each; their output is shown.
-
-Scripts and startup items run in the plugin folder with these set:
-
-| Variable | |
-| --- | --- |
-| `OC_PLUGIN_ID`, `OC_PLUGIN_DIR` | the plugin's id and folder |
-| `OC_PLUGIN_DATA` | a folder for the plugin's own files (settings, downloads). Kept across updates; `oc-plugin remove` deletes it unless given `--keep-data` |
-| `OC_CONFIG_DIR`, `OC_KLIPPER_DIR`, `OC_MOONRAKER_URL` | where Klipper's config and Kalico are, and Moonraker's address |
-
-`/opt/bin` is on the `PATH`. Keep anything a user changes in `OC_PLUGIN_DATA`: the plugin folder is a git
-checkout that updates replace.
-
-## Compatibility
-
-```json
-"requires": { "models": ["Creator5Pro"], "modes": ["soc"] }
-```
-
-- `models`: `Creator5`, `Creator5Pro`. For hardware only one of them has, like the Pro's chamber heater.
-- `modes`: `soc` (Klipper on the printer itself) or `sbc` (Klipper on a Raspberry Pi or other SBC). A printer
-  tunneled to an SBC counts as `sbc`. There, only startup items and scripts run on the printer, with
-  `OC_TUNNELED=1`, and `OC_MOONRAKER_URL` is the SBC's Moonraker (`oc-plugin moonraker --find`).
-
-Leave a key out to allow everything. `oc-plugin install` refuses a plugin that isn't made for the printer, and
-`oc-plugin update` keeps the old version if a new one isn't (or its manifest is broken). `--force` installs it
-anyway. If the model can't be told, it only warns.
-
-## Getting into the catalog
-
-`oc-plugin search` lists the plugin catalog, `catalog.json` in
-[opencreator-fs](https://github.com/FlashForge-C5-Modding-Group/opencreator-fs) under
-`fs/usr/data/opencreator/plugin-manager/`. Open a pull request adding your plugin there:
-
-```json
-{
-  "id": "hello",
-  "name": "Hello OpenCreator",
-  "official": false,
-  "author": "You",
-  "description": "One line on what it does.",
-  "url": "https://github.com/you/your-plugin.git",
-  "requires": { "modes": ["soc"] },
-  "note": "Optional: anything people need to do after installing."
-}
-```
-
-The `id` must match your manifest's. `official` is only set for plugins the OpenCreator team makes or checks.
-
-Module names must be unique: a module named like one of Kalico's own (or another plugin's) is refused.
-Prefix yours (this one uses `oc_hello`).
-
-## Developing
-
-Copy this repo, change `id`, `name` and the module names, and install your working folder straight from disk
-to try it:
-
-```sh
-oc-plugin install /usr/data/my-plugin --no-restart
-oc-plugin remove my-plugin
-```
-
-A folder install is a copy, so reinstall it after changes. It also isn't offered in the update manager; that needs
-a git URL.
-
-The full plugin system documentation is on the OpenCreator docs site, under **Plugins**.
+The plugin works wherever Klipper and Moonraker run: on the printer itself, or on an SBC. For a printer
+tunneled to an SBC, install it on the SBC, not on the printer. On the printer, the install script stops
+with a message, since Klipper and Moonraker aren't there.
 
 ## License
 
-Any license, just needs to be compatible with GPLv3 as Klipper uses it
+GPLv3

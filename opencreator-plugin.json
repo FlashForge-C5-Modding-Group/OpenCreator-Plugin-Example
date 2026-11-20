@@ -1,12 +1,15 @@
 {
-  "id": "hello",
-  "name": "Hello OpenCreator",
+  "id": "spoolman",
+  "name": "Spoolman per tool",
   "version": "1.0.0",
-  "description": "Example plugin: a Klippy module, a macro and a Moonraker endpoint.",
-  "author": "OpenCreator",
-  "homepage": "https://github.com/FlashForge-C5-Modding-Group/OpenCreator-Plugin-Example",
-  "klippy_extras": ["klippy/oc_hello.py"],
-  "klipper_config": "config/hello.cfg",
-  "moonraker_components": ["moonraker/oc_hello.py"],
-  "moonraker_config": "moonraker/hello.conf"
+  "description": "A Spoolman spool per tool through AFC, so each tool books filament on its own spool.",
+  "author": "JayKuswahey",
+  "homepage": "https://github.com/JayKuswahey/OpenCreator-Plugin-Spoolman",
+  "klipper_config": "config/oc-spoolman.cfg",
+  "scripts": {
+    "install": "scripts/install.sh",
+    "update": "scripts/install.sh",
+    "uninstall": "scripts/uninstall.sh"
+  },
+  "restart": ["klipper", "moonraker"]
 }
