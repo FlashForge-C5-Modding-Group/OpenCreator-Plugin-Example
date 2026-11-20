@@ -21,17 +21,17 @@ if [ ! -f "$MOONRAKER_CONF" ]; then
     exit 1
 fi
 
-# A [spoolman] section in moonraker.conf itself would be defined twice.
+# A [spoolman] section in moonraker.conf itself would be defined twice. Display a warning 
+# if one exists, but is commented out.
 if grep -q '^\[spoolman\]' "$MOONRAKER_CONF"; then
     echo "moonraker.conf has its own [spoolman] section already: using that, nothing added."
     exit 0
-fi
-
-# OpenCreator's default moonraker.conf has a commented-out [spoolman] example.
-if grep -q '^#[[:space:]]*\[spoolman\]' "$MOONRAKER_CONF"; then
+elif grep -q '^#[[:space:]]*\[spoolman\]' "$MOONRAKER_CONF"; then 
     echo "moonraker.conf has OpenCreator's default [spoolman] section, commented out. Leave it commented out:"
     echo "Spoolman's address goes in oc-spoolman.conf, and uncommenting both defines [spoolman] twice,"
     echo "which might prevent the machine from starting correctly."
+else
+    echo "No [spoolman] section found in moonraker.conf: will add oc-spoolman.conf include if needed."
 fi
 
 if [ -f "$SPOOLMAN_CONF" ]; then
