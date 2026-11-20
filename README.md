@@ -120,6 +120,34 @@ You can use the same switch in your own G-code:
 SPOOLMAN_ECHO MSG="Qidi PETG yellow loaded"
 ```
 
+### 5. Group the macros in Fluidd (optional)
+
+Fluidd lists new macros under **Uncategorized**. To give the plugin's macros their own group on the dashboard:
+
+1. Open Fluidd's **Settings** (the cog icon) and scroll to **Macros**.
+2. Click **Add Category**, name it `Spoolman`, and save.
+3. Click **Uncategorized** to see the macros in it. For each of these macros, click its name, set **Category**
+   to `Spoolman`, and click **Save**:
+   - `SPOOLMAN_SET_TOOL`
+   - `SPOOLMAN_CLEAR_TOOL`
+   - `SPOOLMAN_ACTIVATE_TOOL`
+   - `SPOOLMAN_STATUS`
+   - `SPOOLMAN_ECHO_ON`
+   - `SPOOLMAN_ECHO_OFF`
+   - `SPOOLMAN_ECHO`
+4. Hide `SPOOLMAN_ECHO`. It only does something with a `MSG`, so it's for G-code, not for a dashboard button.
+   Open **Spoolman** in the category list and turn off the switch next to `SPOOLMAN_ECHO`. You can also turn
+   off **Visible** in its settings. The macro still works from G-code and the console.
+5. Optionally, drag the macros into the order you want, and give them a color or an **Alias** (a shorter button
+   name) in the same settings.
+
+Macros whose names start with `_`, like `_SPOOLMAN_PROBLEM`, are the plugin's helpers. Fluidd doesn't show
+them.
+
+Fluidd saves these settings in Moonraker, so they apply in every browser and survive plugin updates. If Fluidd
+is open in another browser tab, reload that tab afterwards. Otherwise its next change to a macro setting can
+undo yours.
+
 ## Macros
 
 | Macro | What it does |
@@ -198,15 +226,21 @@ To work on a branch, run `git checkout <branch>` in that folder first.
 
 ### Option 2: SCP from your computer
 
-To try changes without pushing them, copy your working folder to the printer, from your computer:
+To try changes without pushing them, copy your working folder to the printer. Make the folder for it once:
 
 ```sh
-ssh root@<printer> "mkdir -p /usr/data/localPluginTrials && rm -rf /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman"
+ssh root@<printer> mkdir -p /usr/data/localPluginTrials
+```
+
+Then, for every change, from your computer:
+
+```sh
+ssh root@<printer> rm -rf /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 scp -r OpenCreator-Plugin-Spoolman root@<printer>:/usr/data/localPluginTrials/
 ```
 
-The `mkdir -p` makes the folder the first time and does nothing after that. The `rm -rf` clears the previous
-copy, so files you deleted locally don't stay behind on the printer. Then, on the printer:
+The `rm -rf` clears the previous copy, so files you deleted locally don't stay behind on the printer. Then, on
+the printer:
 
 ```sh
 oc-plugin remove oc_spoolman
