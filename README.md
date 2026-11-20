@@ -162,4 +162,4 @@ The full plugin system documentation is on the OpenCreator docs site, under **Pl
 
 ## License
 
-GPLv3, like Klipper and Moonraker, which these modules are loaded into.
+Any license, just needs to be compatible with GPLv3 as Klipper uses it
