@@ -1,16 +1,17 @@
 # OpenCreator Spoolman plugin
 
-A Spoolman spool per tool on the Creator 5 and Creator 5 Pro.
+TL;DR -- A Spoolman spool config per tool on the Creator 5 and Creator 5 Pro.
 
 A filament start G-code like `SET_ACTIVE_SPOOL ID=174` ties a spool to a *slicer profile*. With four tools,
-one profile (say Qidi PETG) can be loaded as yellow on T0 and blue on T1, and both would book their filament on
-spool 174. This plugin ties the spool to the *tool* instead, using AFC, which OpenCreator already uses for the
-tools:
+one single profile (say Qidi PETG) can be loaded as yellow on T0 and blue on T1, and both would book their filament on
+spool 174, meaning that one spool depleted while the other does not. 
+
+This plugin ties the spool to the *tool* instead, using AFC, which OpenCreator already uses. This plugin will make sure that:
 
 - Each tool (AFC lane `extruder0` to `extruder3` for T0 to T3) keeps its own Spoolman spool ID, across restarts.
 - When a tool is picked up, AFC makes that tool's spool the active spool in Spoolman, so usage is booked on the
   spool that is actually printing.
-- Macros to assign, clear, activate and list spools per tool, and to turn the plugin's messages on and off.
+- There are macros to assign, clear, activate and list spools per tool, and to turn the plugin's messages on and off.
 
 ## Install
 
@@ -69,7 +70,7 @@ SPOOLMAN_STATUS
 ```
 
 AFC looks each spool up in Spoolman and fills in the tool's material, color and weight. If a spool was on
-another tool, it moves to the new one. Swap the spool on a tool, run `SPOOLMAN_SET_TOOL` again.
+another tool, it moves to the new one. If you swap a spool on a tool, run `SPOOLMAN_SET_TOOL` again, setting up the new ID.
 
 ### 3. Change the filament start G-code in your slicer
 
@@ -104,7 +105,7 @@ G-code needs. Pass `TOOL=` only to set up a tool that isn't active, as in step 2
 ### 4. Messages
 
 The macros report what they did in the console, for example `Spoolman: Tool 1 has spool 175 (active)`. With
-filament start G-code that runs at every tool change, that adds up:
+filament start G-code that runs at every tool change, that adds up. Use these commands to toggle those echoes:
 
 ```gcode
 SPOOLMAN_ECHO_OFF   ; hide routine messages
