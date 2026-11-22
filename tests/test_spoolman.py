@@ -69,7 +69,8 @@ class MacroRenderTest(unittest.TestCase):
 
         tmpl = self.env.from_string(self.cfg.get("gcode_macro " + name, "gcode"))
         out = tmpl.render(printer=self.printer(), params={k: str(v) for k, v in params.items()},
-                          rawparams="", action_raise_error=raise_error,
+                          rawparams=" ".join("%s=%s" % kv for kv in params.items()),
+                          action_raise_error=raise_error,
                           action_call_remote_method=remote, action_respond_info=respond)
         return [l.strip() for l in out.splitlines() if l.strip()]
 
@@ -136,6 +137,29 @@ class MacroRenderTest(unittest.TestCase):
             self.run_macro("_SPOOLMAN_PROBLEM", MSG="x")
         self.state = "printing"
         self.assertEqual(self.run_macro("_SPOOLMAN_PROBLEM", MSG="x"), ['RESPOND TYPE=error MSG="Spoolman: x"'])
+
+    def test_tool_select_wrapper(self):
+        self.assertEqual(self.cfg.get("gcode_macro C5_TOOL_SELECT", "rename_existing"),
+                         "_OC_SPOOLMAN_C5_TOOL_SELECT")
+        self.assertEqual(self.run_macro("C5_TOOL_SELECT", T=2),
+                         ["_OC_SPOOLMAN_C5_TOOL_SELECT T=2", "_SPOOLMAN_TOOL_PICKED T=2"])
+
+    def test_pickup_activates_tool_spool(self):
+        self.lanes["extruder2"]["spool_id"] = 42
+        lines = self.run_macro("_SPOOLMAN_TOOL_PICKED", T=2)
+        self.assertEqual(self.calls, [("spoolman_set_active_spool", {"spool_id": 42})])
+        self.assertEqual(lines, ['SPOOLMAN_ECHO MSG="T2 picked up: spool 42 active"'])
+
+    def test_pickup_without_spool_clears_and_never_raises(self):
+        self.assertTrue(self.run_macro("_SPOOLMAN_TOOL_PICKED", T=0)[0].startswith("SPOOLMAN_ECHO"))
+        self.state = "printing"
+        self.assertTrue(self.run_macro("_SPOOLMAN_TOOL_PICKED", T=0)[0].startswith("_SPOOLMAN_PROBLEM"))
+        self.assertEqual(self.calls[-1], ("spoolman_set_active_spool", {"spool_id": None}))
+
+    def test_pickup_does_nothing_without_spoolman(self):
+        self.spoolman = None
+        self.assertEqual(self.run_macro("_SPOOLMAN_TOOL_PICKED", T=1), [])
+        self.assertEqual(self.calls, [])
 
     def test_status(self):
         self.lanes["extruder1"].update(spool_id=174, material="PETG", color="#FFD700")
