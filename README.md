@@ -164,7 +164,7 @@ undo yours.
 | `SPOOLMAN_STATUS` | Shows the Spoolman server, each tool's spool, material and color, the active tool, and whether messages are on. |
 | `SPOOLMAN_ECHO MSG="..."` | Shows `MSG` while messages are on. |
 | `SPOOLMAN_ECHO_ON` / `SPOOLMAN_ECHO_OFF` | Turns the messages on or off. The setting is saved as `oc_spoolman_echo` in Klipper's saved variables. |
-| `C5_TOOL_SELECT T=<0-3>` | OpenCreator's tool pickup, wrapped by the plugin: after the pickup it makes that tool's spool the active spool. The original command is kept as `_OC_SPOOLMAN_C5_TOOL_SELECT`. |
+| `C5_TOOL_SELECT T=<0-3>` | OpenCreator's tool pickup, wrapped by the plugin: after the pickup it makes that tool's spool the active spool. The original command is kept as `_OC_SPOOLMAN_TOOL_SELECT`. |
 
 AFC's own `SET_SPOOL_ID LANE=extruder1 SPOOL_ID=175` changes the same assignments, as does any AFC panel that
 sets a lane's spool.

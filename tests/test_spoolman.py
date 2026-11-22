@@ -1,5 +1,6 @@
 import configparser
 import json
+import re
 import os
 import pathlib
 import shutil
@@ -34,6 +35,34 @@ class ManifestTest(unittest.TestCase):
         # An active placeholder address would have AFC wait on a server that isn't there.
         for line in (ROOT / "moonraker" / "oc-spoolman.conf").read_text().splitlines():
             self.assertTrue(not line.strip() or line.startswith("#"), line)
+
+
+def kalico_command(line):
+    """The command name Kalico's G-code parser (klippy/gcode.py) reads from a line."""
+    parts = re.split("([A-Z_]+|[A-Z*])", line.upper())
+    cmd = "".join(parts[:3]).strip()
+    if re.match(r"^_*[A-Z][0-9]+_[A-Z0-9_]+(?:\s|$)", line.upper()):
+        cmd = line.split(None, 1)[0].upper()
+    return cmd
+
+
+class CommandNameTest(unittest.TestCase):
+    def test_every_command_parses_as_itself(self):
+        # A name like _OC_SPOOLMAN_C5_TOOL_SELECT parses as "_OC_SPOOLMAN_C5": Klipper then
+        # reports an unknown command and carries on, so the real command silently never runs.
+        cfg = klipper_config()
+        names = set()
+        for section in cfg.sections():
+            if section.startswith("gcode_macro "):
+                names.add(section.split(None, 1)[1].upper())
+                if cfg.has_option(section, "rename_existing"):
+                    names.add(cfg.get(section, "rename_existing").upper())
+                for line in cfg.get(section, "gcode").splitlines():
+                    m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)(?:\s|$)", line)
+                    if m and not line.strip().startswith("{"):
+                        names.add(m.group(1).upper())
+        for name in sorted(names):
+            self.assertEqual(kalico_command(name + " T=0"), name, name)
 
 
 class MacroRenderTest(unittest.TestCase):
@@ -140,9 +169,9 @@ class MacroRenderTest(unittest.TestCase):
 
     def test_tool_select_wrapper(self):
         self.assertEqual(self.cfg.get("gcode_macro C5_TOOL_SELECT", "rename_existing"),
-                         "_OC_SPOOLMAN_C5_TOOL_SELECT")
+                         "_OC_SPOOLMAN_TOOL_SELECT")
         self.assertEqual(self.run_macro("C5_TOOL_SELECT", T=2),
-                         ["_OC_SPOOLMAN_C5_TOOL_SELECT T=2", "_SPOOLMAN_TOOL_PICKED T=2"])
+                         ["_OC_SPOOLMAN_TOOL_SELECT T=2", "_SPOOLMAN_TOOL_PICKED T=2"])
 
     def test_pickup_activates_tool_spool(self):
         self.lanes["extruder2"]["spool_id"] = 42
