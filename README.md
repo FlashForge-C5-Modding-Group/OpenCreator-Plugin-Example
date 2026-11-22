@@ -224,12 +224,12 @@ Then, for every change you push to GitHub:
 
 ```sh
 cd /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
+git fetch -p ## Fetch repo data, prune/purge branches which are deleted on origin
+git checkout <branch> ## Switch to a branch if need be
 git pull
 oc-plugin remove oc_spoolman_integration
 oc-plugin install /usr/data/localPluginTrials/OpenCreator-Plugin-Spoolman
 ```
-
-To work on a branch, run `git checkout <branch>` in that folder first.
 
 ### Notes
 
